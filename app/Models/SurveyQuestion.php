@@ -9,4 +9,9 @@ class SurveyQuestion extends Model
 {
     use HasFactory;
     protected $fillable = ['label', 'name', 'type', 'required'];
+
+    public function survey()
+    {
+        return $this->belongsTo(Survey::class);
+    }
 }

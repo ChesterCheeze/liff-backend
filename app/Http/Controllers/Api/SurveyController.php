@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SurveyQuestion;
+use App\Models\Survey;
 use Illuminate\Http\Request;
 
 class SurveyController extends Controller
@@ -19,18 +20,28 @@ class SurveyController extends Controller
     }
 
     /**
+     * 
+     */
+    public function create()
+    {
+        //
+        $surveys = Survey::all();
+        return view('survey.create', ['surveys' => $surveys]);
+
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
         //
         $validateData = $request->validate([
-            'label' => 'required',
+            'section' => 'required',
             'name' => 'required',
-            'type' => 'required|in:scale,text',
-            'required' => 'boolean',]);
-        SurveyQuestion::create($validateData);
-        return redirect()->route('survey.create')->with('success', 'Survey question created successfully.');
+            'description' => 'required',]);
+        Survey::create($validateData);
+        return redirect()->route('survey.create')->with('success', 'Survey created successfully.');
     }
 
     /**
@@ -65,5 +76,11 @@ class SurveyController extends Controller
     {
         $surveyQuestions = SurveyQuestion::all();
         return view('survey.survey', ['surveyQuestions' => $surveyQuestions]);
+    }
+
+    public function edit(string $id)
+    {
+        $survey = Survey::find($id);
+        return view('survey.edit', ['survey' => $survey]);
     }
 }
