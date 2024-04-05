@@ -17,7 +17,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/survey/create', [App\Http\Controllers\Api\SurveyController::class, 'create']);
+Route::get('/survey/create', [App\Http\Controllers\Api\SurveyController::class, 'create'])->name('survey.create');
 Route::get('/survey', [App\Http\Controllers\Api\SurveyController::class, 'showSurveyTable']);
 Route::get('/survey/{id}/edit', [App\Http\Controllers\Api\SurveyController::class, 'edit'])->name('survey.edit');
 Route::post('/survey/store', [App\Http\Controllers\Api\SurveyController::class, 'store'])->name('survey.store');
