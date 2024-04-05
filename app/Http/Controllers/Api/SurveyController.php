@@ -47,10 +47,20 @@ class SurveyController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show()
+    public function show($id)
     {
         //
-        return view('survey.create');
+        $survey = Survey::with('questions')->find($id);
+
+        if (!$survey) {
+            return response()->json(['message' => 'Survey not found.'], 404);
+        } else {
+            $survey->makeHidden(['created_at', 'updated_at']);
+            foreach ($survey->questions as $question) {
+                $question->makeHidden(['created_at', 'updated_at']);
+            }
+            return response()->json($survey);
+        }
     }
 
     /**
@@ -59,6 +69,14 @@ class SurveyController extends Controller
     public function update(Request $request, string $id)
     {
         //
+        $survey = Survey::find($id);
+        $validateData = $request->validate([
+            'section' => 'required',
+            'name' => 'required',
+            'description' => 'required',
+        ]);
+        $survey->update($validateData);
+        return redirect()->route('survey.create')->with('success', 'Survey updated successfully.');
     }
 
     /**

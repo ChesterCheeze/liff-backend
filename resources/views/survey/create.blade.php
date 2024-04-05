@@ -40,6 +40,13 @@
                     <td>
                         <a href="{{ route('survey.questions', ['id' => $survey->id]) }}" class="btn btn-primary">View Questions</a>
                     </td>
+                    <td>
+                        <form action="{{ route('survey.delete', ['id' => $survey->id]) }}" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-primary">Delete</button>
+                        </form>
+                    </td>
                 </tr>
             @endforeach
         </tbody>

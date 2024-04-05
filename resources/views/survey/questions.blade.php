@@ -21,7 +21,7 @@
             </select>
         </div>
         <div class="form-group form-check">
-            <input type="radio" class="form-check-input" id="required" name="required" value="true">
+            <input type="checkbox" class="form-check-input" id="required" name="required" value="checked">
             <label class="form-check-label" for="required">Required</label>
         </div>
         <input type="hidden" name="survey_id" value="{{ $survey->id }}">
@@ -41,18 +41,22 @@
     </thead>
     <tbody>
         @foreach($survey->questions as $question)
-            <tr>
-                <td>{{ $question->label }}</td>
-                <td>{{ $question->name }}</td>
-                <td>{{ $question->type }}</td>
-                <td>{{ $question->required ? 'Yes' : 'No' }}</td>
-                <td>
-                    <a href="#" class="btn btn-primary">Edit</a>
-                </td>
-                <td>
-                    <a href="#" class="btn btn-primary">Delete</a>
-                </td>
-            </tr>
+        <tr>
+            <td>{{ $question->label }}</td>
+            <td>{{ $question->name }}</td>
+            <td>{{ $question->type }}</td>
+            <td>{{ $question->required ? 'Yes' : 'No' }}</td>
+            <td>
+                <a href="{{ route('questions.edit', ['id' => $question->id]) }}" class="btn btn-primary">Edit</a>
+            </td>
+            <td>
+                <form action="{{ route('question.delete', ['id' => $question->id]) }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-primary">Delete</button>
+                </form>
+            </td>
+        </tr>
         @endforeach
     </tbody>
 </table>
