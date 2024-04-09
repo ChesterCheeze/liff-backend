@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SurveyQuestion;
 use App\Models\Survey;
 use Illuminate\Http\Request;
+use App\Models\LineOAUser;
 
 class SurveyController extends Controller
 {
@@ -47,22 +48,23 @@ class SurveyController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        //
-        $survey = Survey::with('questions')->find($id);
+        $lineId = $request->input('lineId');
+        $name = $request->input('name');
+        $pictureUrl = $request->input('pictureUrl');
 
-        if (!$survey) {
-            return response()->json(['message' => 'Survey not found.'], 404);
-        } else {
-            $survey->makeHidden(['created_at', 'updated_at']);
-            foreach ($survey->questions as $question) {
-                $question->makeHidden(['created_at', 'updated_at']);
-            }
-            return response()->json($survey);
-        }
+        $lineUser = $this->getOrCreateUser($lineId, $name, $pictureUrl);
+        $survey = $this->getSurvey($id);
+
+        $token = $lineUser->createToken('authToken');
+
+        return response()->json([
+            'apiToken' => $token->plainTextToken,
+            'survey' => $survey,
+        ]);
+       
     }
-
     /**
      * Update the specified resource in storage.
      */
@@ -101,4 +103,36 @@ class SurveyController extends Controller
         $survey = Survey::find($id);
         return view('survey.edit', ['survey' => $survey]);
     }
+
+    private function getOrCreateUser($lineId, $name, $pictureUrl)
+    {
+        $lineUser = LineOAUser::where('line_id', $lineId)->first();
+
+        if ($lineUser == null) {
+            $lineUser = LineOAUser::create([
+                'line_id' => $lineId,
+                'name' => $name,
+                'picture_url' => $pictureUrl,
+            ]);
+        }
+
+        return $lineUser;
+    }
+
+    private function getSurvey($surveyId)
+    {
+        $survey = Survey::with('questions')->find($surveyId);
+
+        if (!$survey) {
+            return response()->json(['message' => 'Survey not found.'], 404);
+        }
+
+        $survey->makeHidden(['created_at', 'updated_at']);
+        foreach ($survey->questions as $question) {
+            $question->makeHidden(['created_at', 'updated_at']);
+        }
+
+        return $survey;
+    }
+
 }
