@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('survey_responses', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('line_id')->constrained(table: 'lineoausers', indexName: 'line_id');
+            $table->foreignId('line_id');
             $table->string('survey_id');
             $table->json('form_data');
             $table->timestamps();

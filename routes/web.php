@@ -30,4 +30,4 @@ Route::put('/questions/{id}', [App\Http\Controllers\SurveyQuestionController::cl
 Route::delete('/questions/{id}', [App\Http\Controllers\SurveyQuestionController::class, 'destroy'])->name('question.delete');
 
 Route::get('/api/survey/{id}', [App\Http\Controllers\Api\SurveyController::class, 'show'])->name('api.survey.show');
-Route::post('/api/survey/response', [App\Http\Controllers\Api\SurveyResponseController::class, 'store'])->name('api.survey.response');
+Route::middleware('auth:sanctum')->post('/api/survey/response', [App\Http\Controllers\Api\SurveyResponseController::class, 'store'])->name('api.survey.response');

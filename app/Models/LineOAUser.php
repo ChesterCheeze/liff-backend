@@ -18,6 +18,6 @@ class LineOAUser extends Authenticatable
     protected $fillable = ['line_id', 'name', 'picture_url'];
 
     public function survey_responses() {
-        return $this->hasMany(SurveyResponse::class);
+        return $this->hasMany(SurveyResponse::class, 'line_id', 'line_id');
     }
 }
