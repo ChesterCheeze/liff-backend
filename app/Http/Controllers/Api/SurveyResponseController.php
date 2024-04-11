@@ -34,7 +34,11 @@ class SurveyResponseController extends Controller
         if (!$lineuser) {
             return response()->json(['message' => 'user' . $validData['lineId'] . 'not found'], 404);
         }
-        $lineuser->survey_responses()->create($validData);
+        $lineuser->survey_responses()->create([
+            'line_id' => $validData['lineId'],
+            'survey_id' => $validData['survey_id'],
+            'form_data' => $validData['form_data'],
+        ]);
 
         return response()->json(['message' => 'Data created successfully'], 201);
     }

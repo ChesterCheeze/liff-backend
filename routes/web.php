@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,4 +31,7 @@ Route::put('/questions/{id}', [App\Http\Controllers\SurveyQuestionController::cl
 Route::delete('/questions/{id}', [App\Http\Controllers\SurveyQuestionController::class, 'destroy'])->name('question.delete');
 
 Route::get('/api/survey/{id}', [App\Http\Controllers\Api\SurveyController::class, 'show'])->name('api.survey.show');
-Route::middleware('auth:sanctum')->post('/api/survey/response', [App\Http\Controllers\Api\SurveyResponseController::class, 'store'])->name('api.survey.response');
+
+Route::get('/sanctum/csrf-cookie', function (Request $request) {
+    return response()->json(['csrf_token' => csrf_token()]);
+});
