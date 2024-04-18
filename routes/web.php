@@ -30,7 +30,7 @@ Route::get('/questions/{id}/edit', [App\Http\Controllers\SurveyQuestionControlle
 Route::put('/questions/{id}', [App\Http\Controllers\SurveyQuestionController::class, 'update'])->name('question.update');
 Route::delete('/questions/{id}', [App\Http\Controllers\SurveyQuestionController::class, 'destroy'])->name('question.delete');
 
-Route::get('/api/survey/{id}', [App\Http\Controllers\Api\SurveyController::class, 'show'])->name('api.survey.show');
+Route::get('/survey/{id}', [App\Http\Controllers\Api\SurveyController::class, 'show'])->name('api.survey.show');
 
 Route::get('/sanctum/csrf-cookie', function (Request $request) {
     return response()->json(['csrf_token' => csrf_token()]);
