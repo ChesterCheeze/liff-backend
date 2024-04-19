@@ -15,7 +15,7 @@ class LineOAUserController extends Controller
             'lineId' => 'required',
             'name' => 'required',
             'pictureUrl' => 'required',]);
-        
+
         $lineuser = LineOAUser::where('line_id', $validateData['lineId'])->first();
         if (!$lineuser) {
             $lineuser = LineOAUser::create([
@@ -23,9 +23,10 @@ class LineOAUserController extends Controller
                 'name' => $validateData['name'],
                 'picture_url' => $validateData['pictureUrl'],
             ]);
-        }
-        $token = $lineuser->createToken('authToken');
+            $token = $lineuser->createToken('authToken');
 
-        return response()->json(['message' => "User registered successfully", 'api_token' => $token->plainTextToken]);
+            return response()->json(['message' => "User registered successfully", 'api_token' => $token->plainTextToken]);
+        }
+        return response()->json(['message' => "User already registered"]);
     }
 }

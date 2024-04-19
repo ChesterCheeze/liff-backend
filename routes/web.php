@@ -32,6 +32,3 @@ Route::delete('/questions/{id}', [App\Http\Controllers\SurveyQuestionController:
 
 Route::get('/survey/{id}', [App\Http\Controllers\Api\SurveyController::class, 'show'])->name('api.survey.show');
 
-Route::get('/sanctum/csrf-cookie', function (Request $request) {
-    return response()->json(['csrf_token' => csrf_token()]);
-});
