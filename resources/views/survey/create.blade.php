@@ -1,3 +1,4 @@
+@php $surveys = $surveys ?? collect(); @endphp
 <div class="container">
     <h1>Create Survey</h1>
     <form action="{{ route('survey.store') }}" method="POST">

@@ -11,11 +11,12 @@ class SurveyResponseTest extends TestCase
     /**
      * A basic feature test example.
      */
-    public function testStore() 
+    public function testStore()
     {
-        $token = '1|ETshJlxmPmmvuPkZ4Zeuwu12qamc58XlDYcwM4Gz51ff4e65';
+        $user = \App\Models\LineOAUser::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
         $data = [
-            'lineId' => '123456789',
+            'lineId' => $user->line_id,
             'survey_id' => '1',
             'form_data' => '{
                 "q1": 7,
@@ -26,9 +27,11 @@ class SurveyResponseTest extends TestCase
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token
         ])->postJson('/api/survey/response', $data);
-       
-        $response->assertStatus(201);
 
+        if ($response->status() !== 201) {
+            fwrite(STDERR, $response->getContent());
+        }
+        $response->assertStatus(201);
         $response->assertJson(['message' => 'Data created successfully']);
     }
 }
