@@ -64,7 +64,7 @@
                         <td colspan="6" class="px-6 py-4">
                             <div class="space-y-4">
                                 @if($response->answers)
-                                    @foreach(json_decode($response->answers, true) as $questionId => $answer)
+                                    @foreach($response->answers as $questionId => $answer)
                                         <div>
                                             <div class="font-medium text-gray-700">
                                                 {{ $survey->questions->find($questionId)->question_text ?? 'Question not found' }}

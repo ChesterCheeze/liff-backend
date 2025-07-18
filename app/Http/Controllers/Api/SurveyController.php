@@ -93,7 +93,7 @@ class SurveyController extends Controller
 
     public function showSurveyTable()
     {
-        $surveyQuestions = SurveyQuestion::all();
+        $surveyQuestions = SurveyQuestion::with('survey')->get();
 
         return view('survey.survey', ['surveyQuestions' => $surveyQuestions]);
     }

@@ -1,0 +1,122 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Laravel Survey API",
+        "description": "A comprehensive survey management API built with Laravel, featuring:\n * - Multi-role authentication (Admin, User, LINE OA)\n * - Real-time survey updates via WebSocket broadcasting\n * - Advanced analytics and reporting\n * - Export/Import functionality for surveys and responses\n * - Tiered rate limiting for security\n * - Email verification and password reset",
+        "contact": {
+            "name": "API Support",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost",
+            "description": "API Server"
+        },
+        {
+            "url": "/api"
+        }
+    ],
+    "paths": {
+        "/api/v1/admin/surveys": {
+            "get": {
+                "tags": [
+                    "Admin - Surveys"
+                ],
+                "summary": "List all surveys (Admin)",
+                "description": "Get paginated list of all surveys with filtering options",
+                "operationId": "e53dfa58762d76187e4d42e5cd1c862e",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by survey status",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "draft",
+                                "active",
+                                "closed"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Surveys retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Enter JWT token obtained from authentication endpoints"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Admin - Surveys",
+            "description": "Admin - Surveys"
+        }
+    ],
+    "security": [
+        {
+            "sanctum": []
+        }
+    ]
+}
