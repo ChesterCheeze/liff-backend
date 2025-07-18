@@ -1,8 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
 use App\Http\Controllers\LoginController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,9 +20,14 @@ Route::get('/register', [LoginController::class, 'showRegisterForm'])->name('reg
 Route::post('/register', [LoginController::class, 'register']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// Admin authentication routes
+Route::get('/admin/login', [LoginController::class, 'showAdminLoginForm'])->name('admin.login')->middleware('guest');
+Route::post('/admin/login', [LoginController::class, 'authenticateAdmin'])->middleware('guest');
+Route::post('/admin/logout', [LoginController::class, 'logoutAdmin'])->name('admin.logout');
+
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('welcome');
 
 Route::get('/survey/create', [App\Http\Controllers\Api\SurveyController::class, 'create'])->name('survey.create');
 Route::get('/survey', [App\Http\Controllers\Api\SurveyController::class, 'showSurveyTable']);
@@ -39,3 +43,20 @@ Route::delete('/questions/{id}', [App\Http\Controllers\SurveyQuestionController:
 
 Route::get('/survey/{id}', [App\Http\Controllers\Api\SurveyController::class, 'show'])->name('api.survey.show');
 
+// Admin routes
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+
+    // User management routes
+    Route::get('/users', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}/edit', [App\Http\Controllers\Admin\UserController::class, 'edit'])->name('users.edit');
+    Route::put('/users/{user}', [App\Http\Controllers\Admin\UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('users.destroy');
+
+    // Survey management routes
+    Route::get('/surveys', [App\Http\Controllers\Admin\SurveyController::class, 'index'])->name('surveys.index');
+    Route::get('/surveys/{survey}', [App\Http\Controllers\Admin\SurveyController::class, 'show'])->name('surveys.show');
+    Route::get('/surveys/{survey}/responses', [App\Http\Controllers\Admin\SurveyController::class, 'responses'])->name('surveys.responses');
+    Route::delete('/surveys/{survey}', [App\Http\Controllers\Admin\SurveyController::class, 'destroy'])->name('surveys.destroy');
+    Route::get('/analytics', [App\Http\Controllers\Admin\AnalyticsController::class, 'index'])->name('analytics');
+});

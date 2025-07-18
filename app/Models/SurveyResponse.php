@@ -9,9 +9,19 @@ class SurveyResponse extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['survey_id', 'form_data'];
+    protected $fillable = ['line_id', 'survey_id', 'answers', 'completed_at'];
 
-    public function lineoauser() {
-        return $this->belongsTo(LineOAUser::class);
+    protected $casts = [
+        'completed_at' => 'datetime',
+    ];
+
+    public function lineOaUser()
+    {
+        return $this->belongsTo(LineOAUser::class, 'line_id', 'line_id');
+    }
+
+    public function survey()
+    {
+        return $this->belongsTo(Survey::class);
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\LineOAUser;
+use Illuminate\Http\Request;
 
 class LineOAUserController extends Controller
 {
@@ -14,10 +14,10 @@ class LineOAUserController extends Controller
         $validateData = $request->validate([
             'lineId' => 'required',
             'name' => 'required',
-            'pictureUrl' => 'required',]);
+            'pictureUrl' => 'required', ]);
 
         $lineuser = LineOAUser::where('line_id', $validateData['lineId'])->first();
-        if (!$lineuser) {
+        if (! $lineuser) {
             $lineuser = LineOAUser::create([
                 'line_id' => $validateData['lineId'],
                 'name' => $validateData['name'],
@@ -25,8 +25,9 @@ class LineOAUserController extends Controller
             ]);
             $token = $lineuser->createToken('authToken');
 
-            return response()->json(['message' => "User registered successfully", 'api_token' => $token->plainTextToken]);
+            return response()->json(['message' => 'User registered successfully', 'api_token' => $token->plainTextToken]);
         }
-        return response()->json(['message' => "User already registered"]);
+
+        return response()->json(['message' => 'User already registered']);
     }
 }

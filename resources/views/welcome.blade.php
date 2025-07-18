@@ -1,5 +1,10 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" x-data="{ dark: localStorage.getItem('theme') === 'dark' }" x-init="$watch('dark', val => localStorage.setItem('theme', val ? 'dark' : 'light')); if(localStorage.getItem('theme') === 'dark'){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" x-data="{ dark: localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches) }"
+    x-init="$watch('dark', val => {
+        localStorage.theme = val ? 'dark' : 'light';
+        document.documentElement.classList.toggle('dark', val);
+    });
+    if (dark) document.documentElement.classList.add('dark');">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -30,5 +35,6 @@
         <x-hero />
     @endauth
 </main>    <x-footer />
+    <x-bottom-menu />
 </body>
 </html>

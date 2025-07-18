@@ -15,6 +15,7 @@ class LineOAUserFactory extends Factory
             'line_id' => (string) $this->faker->unique()->numberBetween(1000000000, 9999999999),
             'name' => $this->faker->name(),
             'picture_url' => $this->faker->imageUrl(200, 200, 'people'),
+            'role' => 'user',
         ];
     }
 }

@@ -4,9 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\LineOAUser;
-use App\Models\Survey;
 use Illuminate\Http\Request;
-use App\Models\SurveyResponse;
 
 class SurveyResponseController extends Controller
 {
@@ -31,8 +29,8 @@ class SurveyResponseController extends Controller
         ]);
 
         $lineuser = LineOAUser::where('line_id', $validData['lineId'])->first();
-        if (!$lineuser) {
-            return response()->json(['message' => 'user' . $validData['lineId'] . 'not found'], 404);
+        if (! $lineuser) {
+            return response()->json(['message' => 'user'.$validData['lineId'].'not found'], 404);
         }
         $lineuser->survey_responses()->create([
             'line_id' => $validData['lineId'],

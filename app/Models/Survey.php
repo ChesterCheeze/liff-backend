@@ -9,10 +9,15 @@ class Survey extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['section', 'name', 'description'];
+    protected $fillable = ['section', 'name', 'description', 'status'];
 
     public function questions()
     {
         return $this->hasMany(SurveyQuestion::class);
+    }
+
+    public function responses()
+    {
+        return $this->hasMany(SurveyResponse::class);
     }
 }

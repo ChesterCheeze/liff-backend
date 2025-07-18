@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
@@ -25,8 +25,10 @@ class LoginController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            return redirect()->intended('survey.create');
+
+            return redirect()->intended('/');
         }
+
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
@@ -40,7 +42,7 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        if (! Auth::attempt($credentials)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
@@ -53,6 +55,7 @@ class LoginController extends Controller
             'user' => $user,
         ]);
     }
+
     // Show the registration form
     public function showRegisterForm()
     {
@@ -76,7 +79,55 @@ class LoginController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
+
         return redirect('/')->with('success', 'Registration successful! You are now logged in.');
+    }
+
+    // Show the admin login form
+    public function showAdminLoginForm()
+    {
+        return view('admin.login');
+    }
+
+    // Handle admin login
+    public function authenticateAdmin(Request $request): RedirectResponse
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        // Try to authenticate with default web guard
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+
+            // Check if user has admin role
+            if ($user->isAdmin()) {
+                $request->session()->regenerate();
+
+                return redirect()->intended('/admin/dashboard');
+            } else {
+                Auth::logout();
+
+                return redirect()->route('admin.login')->withErrors([
+                    'email' => 'Access denied. Admin privileges required.',
+                ]);
+            }
+        }
+
+        return redirect()->route('admin.login')->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
+    }
+
+    // Handle admin logout
+    public function logoutAdmin(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/admin/login')->with('success', 'You have been logged out.');
     }
 
     // Handle logout
@@ -85,7 +136,7 @@ class LoginController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/')->with('success', 'You have been logged out.');
     }
 }
-
