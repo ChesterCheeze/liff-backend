@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LoginController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,8 +15,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+Route::post('/login', [LoginController::class, 'apiLogin']);
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('/survey', [App\Http\Controllers\Api\SurveyController::class, 'index']);
+Route::post('/lineuser', [App\Http\Controllers\LineOAUserController::class, 'store'])->name('api.line.user');
+Route::middleware('auth:sanctum')->post('/survey/response', [App\Http\Controllers\Api\SurveyResponseController::class, 'store'])->name('api.survey.response');

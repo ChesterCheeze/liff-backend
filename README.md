@@ -7,6 +7,79 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## About This Application
+
+This is a Laravel-based backend application for managing surveys and user interactions. The application includes:
+
+- **Survey Management**: Create, edit, and manage surveys with custom questions
+- **User Authentication**: Secure login system for regular users and administrators
+- **Admin Panel**: Comprehensive admin interface for managing users and surveys
+- **Response Tracking**: Collect and analyze survey responses
+- **Dark/Light Theme**: Toggle between dark and light themes
+- **Mobile-Responsive**: Optimized for mobile and desktop devices
+
+## Quick Start
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd backend-app
+   ```
+
+2. **Install dependencies**
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. **Environment setup**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+4. **Database setup**
+   ```bash
+   php artisan migrate
+   php artisan db:seed
+   ```
+
+5. **Build assets**
+   ```bash
+   npm run build
+   ```
+
+### Admin Account Setup
+
+Configure your admin account in the `.env` file:
+
+```env
+ADMIN_NAME="Your Admin Name"
+ADMIN_EMAIL="admin@yourdomain.com"
+ADMIN_PASSWORD="your-secure-password"
+```
+
+Then run the seeder:
+```bash
+php artisan db:seed --class=AdminSeeder
+```
+
+### Testing
+
+Run the test suite:
+```bash
+php artisan test
+```
+
+## Documentation
+
+- [Database Seeding](docs/database-seeding.md) - Comprehensive guide to database seeding
+- [Admin Management](docs/admin-management.md) - Admin panel features and usage
+- [Styling Setup](docs/styling-setup.md) - Theme and styling configuration
+- [Theme Toggle](docs/theme-toggle.md) - Dark/light theme implementation
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

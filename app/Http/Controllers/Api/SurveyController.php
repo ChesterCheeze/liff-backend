@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\LineOAUser;
+use App\Models\Survey;
 use App\Models\SurveyQuestion;
 use Illuminate\Http\Request;
 
@@ -15,7 +17,17 @@ class SurveyController extends Controller
     {
         //
         $surveyQuestions = SurveyQuestion::all();
+
         return response()->json($surveyQuestions);
+    }
+
+    public function create()
+    {
+        //
+        $surveys = Survey::all();
+
+        return view('survey.create', ['surveys' => $surveys]);
+
     }
 
     /**
@@ -25,21 +37,33 @@ class SurveyController extends Controller
     {
         //
         $validateData = $request->validate([
-            'label' => 'required',
+            'section' => 'required',
             'name' => 'required',
-            'type' => 'required|in:scale,text',
-            'required' => 'boolean',]);
-        SurveyQuestion::create($validateData);
-        return redirect()->route('survey.create')->with('success', 'Survey question created successfully.');
+            'description' => 'required', ]);
+        Survey::create($validateData);
+
+        return redirect()->route('survey.create')->with('success', 'Survey created successfully.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show()
+    public function show(Request $request, $id)
     {
-        //
-        return view('survey.create');
+        $lineId = $request->input('lineId');
+        $name = $request->input('name');
+        $pictureUrl = $request->input('pictureUrl');
+
+        $lineUser = $this->getOrCreateUser($lineId, $name, $pictureUrl);
+        $survey = $this->getSurvey($id);
+
+        $token = $lineUser->createToken('authToken');
+
+        return response()->json([
+            'apiToken' => $token->plainTextToken,
+            'survey' => $survey,
+        ]);
+
     }
 
     /**
@@ -48,6 +72,15 @@ class SurveyController extends Controller
     public function update(Request $request, string $id)
     {
         //
+        $survey = Survey::find($id);
+        $validateData = $request->validate([
+            'section' => 'required',
+            'name' => 'required',
+            'description' => 'required',
+        ]);
+        $survey->update($validateData);
+
+        return redirect()->route('survey.create')->with('success', 'Survey updated successfully.');
     }
 
     /**
@@ -58,12 +91,48 @@ class SurveyController extends Controller
         //
     }
 
-    /**
-    *
-    */
-    public function showSurveyTable ()
+    public function showSurveyTable()
     {
         $surveyQuestions = SurveyQuestion::all();
+
         return view('survey.survey', ['surveyQuestions' => $surveyQuestions]);
+    }
+
+    public function edit(string $id)
+    {
+        $survey = Survey::find($id);
+
+        return view('survey.edit', ['survey' => $survey]);
+    }
+
+    private function getOrCreateUser($lineId, $name, $pictureUrl)
+    {
+        $lineUser = LineOAUser::where('line_id', $lineId)->first();
+
+        if ($lineUser == null) {
+            $lineUser = LineOAUser::create([
+                'line_id' => $lineId,
+                'name' => $name,
+                'picture_url' => $pictureUrl,
+            ]);
+        }
+
+        return $lineUser;
+    }
+
+    private function getSurvey($surveyId)
+    {
+        $survey = Survey::with('questions')->find($surveyId);
+
+        if (! $survey) {
+            return response()->json(['message' => 'Survey not found.'], 404);
+        }
+
+        $survey->makeHidden(['created_at', 'updated_at']);
+        foreach ($survey->questions as $question) {
+            $question->makeHidden(['created_at', 'updated_at']);
+        }
+
+        return $survey;
     }
 }
