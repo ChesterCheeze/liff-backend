@@ -13,8 +13,6 @@ use Illuminate\Support\Facades\DB;
 
 class AnalyticsController extends Controller
 {
-
-
     public function index(Request $request)
     {
         $period = $request->get('period', '30');
