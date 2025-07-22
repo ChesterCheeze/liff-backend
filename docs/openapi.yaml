@@ -1,0 +1,2612 @@
+openapi: 3.0.3
+info:
+  title: Laravel Survey API
+  description: |
+    A comprehensive survey management API built with Laravel, featuring:
+    - Multi-role authentication (Admin, User, LINE OA)
+    - Real-time survey updates via WebSocket broadcasting
+    - Advanced analytics and reporting
+    - Export/Import functionality for surveys and responses
+    - Tiered rate limiting for security
+    - Email verification and password reset
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000/api
+    description: Development server
+  - url: https://api.example.com/api
+    description: Production server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Use JWT token obtained from authentication endpoints
+
+  schemas:
+    # Core Models
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        email_verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-07-21T10:30:00Z"
+        role:
+          type: string
+          enum: [admin, user]
+          example: "user"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:30:00Z"
+
+    LineOAUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        line_user_id:
+          type: string
+          example: "U1234567890abcdef"
+        display_name:
+          type: string
+          example: "John LINE User"
+        role:
+          type: string
+          enum: [admin, user]
+          example: "user"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:30:00Z"
+
+    Survey:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Customer Satisfaction Survey"
+        description:
+          type: string
+          nullable: true
+          example: "Please rate your experience with our service"
+        status:
+          type: string
+          enum: [draft, active, closed]
+          example: "active"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:30:00Z"
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SurveyQuestion'
+
+    SurveyQuestion:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        survey_id:
+          type: integer
+          example: 1
+        question:
+          type: string
+          example: "How satisfied are you with our service?"
+        type:
+          type: string
+          enum: [text, radio, checkbox, select, textarea, number]
+          example: "radio"
+        options:
+          type: string
+          nullable: true
+          example: "Very Satisfied,Satisfied,Neutral,Unsatisfied,Very Unsatisfied"
+        required:
+          type: boolean
+          example: true
+        order:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:30:00Z"
+
+    SurveyResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        survey_id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          nullable: true
+          example: 1
+        line_user_id:
+          type: integer
+          nullable: true
+          example: 1
+        response_data:
+          type: object
+          example: {"1": "Very Satisfied", "2": "Great service!"}
+        ip_address:
+          type: string
+          nullable: true
+          example: "192.168.1.1"
+        user_agent:
+          type: string
+          nullable: true
+          example: "Mozilla/5.0..."
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-07-21T10:30:00Z"
+        survey:
+          $ref: '#/components/schemas/Survey'
+        user:
+          $ref: '#/components/schemas/User'
+        line_user:
+          $ref: '#/components/schemas/LineOAUser'
+
+    # Request/Response Models
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "admin@example.com"
+        password:
+          type: string
+          format: password
+          example: "password"
+
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - password_confirmation
+      properties:
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+        password_confirmation:
+          type: string
+          format: password
+          example: "password123"
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Login successful"
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            token:
+              type: string
+              example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+            expires_in:
+              type: integer
+              example: 3600
+
+    SurveyRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Customer Satisfaction Survey"
+        description:
+          type: string
+          nullable: true
+          example: "Please rate your experience"
+        status:
+          type: string
+          enum: [draft, active, closed]
+          example: "draft"
+
+    SurveyQuestionRequest:
+      type: object
+      required:
+        - question
+        - type
+      properties:
+        question:
+          type: string
+          example: "How satisfied are you?"
+        type:
+          type: string
+          enum: [text, radio, checkbox, select, textarea, number]
+          example: "radio"
+        options:
+          type: string
+          nullable: true
+          example: "Very Satisfied,Satisfied,Neutral"
+        required:
+          type: boolean
+          example: true
+        order:
+          type: integer
+          example: 1
+
+    SurveyResponseRequest:
+      type: object
+      required:
+        - survey_id
+        - response_data
+      properties:
+        survey_id:
+          type: integer
+          example: 1
+        response_data:
+          type: object
+          example: {"1": "Very Satisfied", "2": "Great service!"}
+
+    # Response Wrappers
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation successful"
+        data:
+          type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation error"
+        errors:
+          type: object
+          nullable: true
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "The given data was invalid."
+        errors:
+          type: object
+          example:
+            email: ["The email field is required."]
+            password: ["The password field is required."]
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: {}
+        links:
+          type: object
+          properties:
+            first:
+              type: string
+              example: "http://localhost:8000/api/v1/admin/surveys?page=1"
+            last:
+              type: string
+              example: "http://localhost:8000/api/v1/admin/surveys?page=5"
+            prev:
+              type: string
+              nullable: true
+              example: null
+            next:
+              type: string
+              nullable: true
+              example: "http://localhost:8000/api/v1/admin/surveys?page=2"
+        meta:
+          type: object
+          properties:
+            current_page:
+              type: integer
+              example: 1
+            from:
+              type: integer
+              example: 1
+            last_page:
+              type: integer
+              example: 5
+            per_page:
+              type: integer
+              example: 15
+            to:
+              type: integer
+              example: 15
+            total:
+              type: integer
+              example: 75
+
+    # Additional Request Models
+    UserUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        role:
+          type: string
+          enum: [admin, user]
+          example: "user"
+
+    ExportRequest:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [csv, xlsx, json]
+          example: "xlsx"
+        filters:
+          type: object
+          properties:
+            date_from:
+              type: string
+              format: date
+              example: "2024-01-01"
+            date_to:
+              type: string
+              format: date
+              example: "2024-12-31"
+            status:
+              type: string
+              enum: [draft, active, closed]
+              example: "active"
+
+    ImportValidationRequest:
+      type: object
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+          description: File to validate for import
+
+    # Analytics Response Models
+    DashboardAnalytics:
+      type: object
+      properties:
+        total_surveys:
+          type: integer
+          example: 25
+        active_surveys:
+          type: integer
+          example: 8
+        total_responses:
+          type: integer
+          example: 1250
+        total_users:
+          type: integer
+          example: 150
+        response_rate:
+          type: number
+          format: float
+          example: 75.5
+        recent_activity:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                example: "survey_created"
+              message:
+                type: string
+                example: "New survey 'Customer Feedback' created"
+              timestamp:
+                type: string
+                format: date-time
+                example: "2024-07-21T10:30:00Z"
+
+    SurveyStats:
+      type: object
+      properties:
+        survey_id:
+          type: integer
+          example: 1
+        total_responses:
+          type: integer
+          example: 150
+        completion_rate:
+          type: number
+          format: float
+          example: 85.5
+        average_completion_time:
+          type: integer
+          description: Average time in seconds
+          example: 180
+        response_breakdown:
+          type: object
+          properties:
+            today:
+              type: integer
+              example: 12
+            this_week:
+              type: integer
+              example: 45
+            this_month:
+              type: integer
+              example: 150
+        question_stats:
+          type: array
+          items:
+            type: object
+            properties:
+              question_id:
+                type: integer
+                example: 1
+              response_count:
+                type: integer
+                example: 140
+              skip_rate:
+                type: number
+                format: float
+                example: 6.7
+
+    ExportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Export completed successfully"
+        data:
+          type: object
+          properties:
+            download_url:
+              type: string
+              example: "https://example.com/exports/survey-data-20240721.xlsx"
+            file_name:
+              type: string
+              example: "survey-data-20240721.xlsx"
+            file_size:
+              type: integer
+              example: 1024576
+            expires_at:
+              type: string
+              format: date-time
+              example: "2024-07-22T10:30:00Z"
+
+    ImportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Import completed successfully"
+        data:
+          type: object
+          properties:
+            processed_records:
+              type: integer
+              example: 150
+            successful_imports:
+              type: integer
+              example: 145
+            failed_imports:
+              type: integer
+              example: 5
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  row:
+                    type: integer
+                    example: 23
+                  error:
+                    type: string
+                    example: "Invalid email format"
+
+    ValidationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            is_valid:
+              type: boolean
+              example: true
+            total_rows:
+              type: integer
+              example: 150
+            valid_rows:
+              type: integer
+              example: 145
+            invalid_rows:
+              type: integer
+              example: 5
+            preview:
+              type: array
+              items:
+                type: object
+                example: {"name": "Sample Survey", "description": "Test description"}
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  row:
+                    type: integer
+                    example: 23
+                  field:
+                    type: string
+                    example: "email"
+                  error:
+                    type: string
+                    example: "Invalid format"
+
+    TemplateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            download_url:
+              type: string
+              example: "https://example.com/templates/survey-import-template.xlsx"
+            file_name:
+              type: string
+              example: "survey-import-template.xlsx"
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Unauthenticated"
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Forbidden"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Resource not found"
+
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Too Many Requests"
+
+tags:
+  - name: Authentication
+    description: User authentication and registration
+  - name: Surveys
+    description: Public survey access
+  - name: Survey Responses
+    description: Survey response submission and retrieval
+  - name: Admin - Surveys
+    description: Survey management for administrators
+  - name: Admin - Questions
+    description: Survey question management
+  - name: Admin - Users
+    description: User management for administrators
+  - name: Admin - Analytics
+    description: Analytics and reporting
+  - name: Admin - Export
+    description: Data export functionality
+  - name: Admin - Import
+    description: Data import functionality
+  - name: Broadcasting
+    description: Real-time WebSocket authentication
+  - name: Legacy
+    description: Legacy endpoints for backward compatibility
+
+paths:
+  # Authentication Endpoints
+  /v1/auth/admin/login:
+    post:
+      tags:
+        - Authentication
+      summary: Admin login
+      description: Authenticate admin user and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Admin Export
+  /v1/admin/export/surveys:
+    post:
+      tags:
+        - Admin - Export
+      summary: Export surveys
+      description: Export survey data in various formats
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: Export generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/export/surveys/{survey}/responses:
+    post:
+      tags:
+        - Admin - Export
+      summary: Export survey responses
+      description: Export responses for a specific survey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: Export generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/export/responses:
+    post:
+      tags:
+        - Admin - Export
+      summary: Export all responses
+      description: Export all survey responses across all surveys
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: Export generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/export/analytics:
+    post:
+      tags:
+        - Admin - Export
+      summary: Export analytics data
+      description: Export comprehensive analytics data
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: Export generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Admin Import
+  /v1/admin/import/surveys:
+    post:
+      tags:
+        - Admin - Import
+      summary: Import surveys
+      description: Import surveys from uploaded file
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV or Excel file containing survey data
+      responses:
+        '200':
+          description: Import completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/import/surveys/{survey}/questions:
+    post:
+      tags:
+        - Admin - Import
+      summary: Import survey questions
+      description: Import questions for a specific survey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV or Excel file containing question data
+      responses:
+        '200':
+          description: Import completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/import/validate:
+    post:
+      tags:
+        - Admin - Import
+      summary: Validate import file
+      description: Validate uploaded file before import
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImportValidationRequest'
+      responses:
+        '200':
+          description: File validation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/import/templates:
+    get:
+      tags:
+        - Admin - Import
+      summary: Download import templates
+      description: Download template files for data import
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [surveys, questions]
+          description: Type of template to download
+      responses:
+        '200':
+          description: Template download link generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Broadcasting Authentication
+  /v1/broadcasting/auth:
+    post:
+      tags:
+        - Broadcasting
+      summary: Authenticate for WebSocket broadcasting
+      description: Authenticate user for real-time WebSocket connections
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - socket_id
+                - channel_name
+              properties:
+                socket_id:
+                  type: string
+                  example: "123456.789012"
+                channel_name:
+                  type: string
+                  example: "private-survey.1"
+      responses:
+        '200':
+          description: Broadcasting authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  auth:
+                    type: string
+                    example: "1234567890abcdef:signature"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Legacy Endpoints (Backward Compatibility)
+  /login:
+    post:
+      tags:
+        - Legacy
+      summary: Legacy admin login
+      description: Legacy endpoint for admin authentication (use /v1/auth/admin/login instead)
+      deprecated: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /lineuser:
+    post:
+      tags:
+        - Legacy
+      summary: Legacy LINE user registration
+      description: Legacy endpoint for LINE user registration (use /v1/auth/line instead)
+      deprecated: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - line_user_id
+                - display_name
+              properties:
+                line_user_id:
+                  type: string
+                  example: "U1234567890abcdef"
+                display_name:
+                  type: string
+                  example: "John LINE User"
+      responses:
+        '200':
+          description: LINE user registered/authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /survey/response:
+    post:
+      tags:
+        - Legacy
+      summary: Legacy survey response submission
+      description: Legacy endpoint for survey response submission (use /v1/survey-responses instead)
+      deprecated: true
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyResponseRequest'
+      responses:
+        '201':
+          description: Response submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Survey response submitted successfully"
+                  data:
+                    $ref: '#/components/schemas/SurveyResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /user:
+    get:
+      tags:
+        - Legacy
+      summary: Legacy get current user
+      description: Legacy endpoint to get current user (use /v1/auth/user instead)
+      deprecated: true
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /broadcasting/auth:
+    post:
+      tags:
+        - Legacy
+      summary: Legacy broadcasting authentication
+      description: Legacy endpoint for WebSocket authentication (use /v1/broadcasting/auth instead)
+      deprecated: true
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - socket_id
+                - channel_name
+              properties:
+                socket_id:
+                  type: string
+                  example: "123456.789012"
+                channel_name:
+                  type: string
+                  example: "private-survey.1"
+      responses:
+        '200':
+          description: Broadcasting authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  auth:
+                    type: string
+                    example: "1234567890abcdef:signature"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+  # Admin Analytics
+  /v1/admin/analytics/dashboard:
+    get:
+      tags:
+        - Admin - Analytics
+      summary: Get dashboard analytics
+      description: Retrieve overall analytics data for admin dashboard
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dashboard analytics retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/DashboardAnalytics'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/analytics/surveys/{survey}/responses:
+    get:
+      tags:
+        - Admin - Analytics
+      summary: Get survey responses for analytics
+      description: Retrieve detailed response data for a specific survey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+            maximum: 100
+          description: Number of items per page
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter responses from date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter responses to date
+      responses:
+        '200':
+          description: Survey responses retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SurveyResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/analytics/surveys/{survey}/stats:
+    get:
+      tags:
+        - Admin - Analytics
+      summary: Get survey statistics
+      description: Retrieve statistical data for a specific survey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      responses:
+        '200':
+          description: Survey statistics retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SurveyStats'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/analytics/export:
+    post:
+      tags:
+        - Admin - Analytics
+      summary: Export analytics data
+      description: Export analytics data in various formats
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - format
+              properties:
+                type:
+                  type: string
+                  enum: [dashboard, survey, responses]
+                  example: "dashboard"
+                format:
+                  type: string
+                  enum: [csv, xlsx, json, pdf]
+                  example: "xlsx"
+                survey_id:
+                  type: integer
+                  description: Required when type is 'survey' or 'responses'
+                  example: 1
+                filters:
+                  type: object
+                  properties:
+                    date_from:
+                      type: string
+                      format: date
+                      example: "2024-01-01"
+                    date_to:
+                      type: string
+                      format: date
+                      example: "2024-12-31"
+      responses:
+        '200':
+          description: Export generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Admin User Management
+  /v1/admin/users:
+    get:
+      tags:
+        - Admin - Users
+      summary: List all users (Admin)
+      description: Get paginated list of all registered users
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+            maximum: 100
+          description: Number of items per page
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [admin, user]
+          description: Filter by user role
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search users by name or email
+        - name: verified
+          in: query
+          schema:
+            type: boolean
+          description: Filter by email verification status
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/users/{user}:
+    get:
+      tags:
+        - Admin - Users
+      summary: Get user details (Admin)
+      description: Retrieve specific user details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      responses:
+        '200':
+          description: User details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+    put:
+      tags:
+        - Admin - Users
+      summary: Update user
+      description: Update user information
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "User updated successfully"
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+    delete:
+      tags:
+        - Admin - Users
+      summary: Delete user
+      description: Delete a user account
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Admin LINE User Management
+  /v1/admin/line-users:
+    get:
+      tags:
+        - Admin - Users
+      summary: List LINE users (Admin)
+      description: Get paginated list of all LINE OA users
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+            maximum: 100
+          description: Number of items per page
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [admin, user]
+          description: Filter by user role
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by display name or LINE user ID
+      responses:
+        '200':
+          description: LINE users retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LineOAUser'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/line-users/{lineUser}:
+    get:
+      tags:
+        - Admin - Users
+      summary: Get LINE user details (Admin)
+      description: Retrieve specific LINE user details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: lineUser
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: LINE User ID
+      responses:
+        '200':
+          description: LINE user details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/LineOAUser'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: User registration
+      description: Register new user account with email verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/auth/verify-email:
+    get:
+      tags:
+        - Authentication
+      summary: Verify email address
+      description: Verify user email using verification token
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Email verification token
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/auth/resend-verification:
+    post:
+      tags:
+        - Authentication
+      summary: Resend verification email
+      description: Send new email verification link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+      responses:
+        '200':
+          description: Verification email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/auth/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset
+      description: Send password reset link to user email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/auth/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset password
+      description: Reset user password using reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - email
+                - password
+                - password_confirmation
+              properties:
+                token:
+                  type: string
+                  example: "reset_token_here"
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "newpassword123"
+                password_confirmation:
+                  type: string
+                  format: password
+                  example: "newpassword123"
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid token or email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/auth/line:
+    post:
+      tags:
+        - Authentication
+      summary: LINE authentication
+      description: Authenticate or register LINE user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - line_user_id
+                - display_name
+              properties:
+                line_user_id:
+                  type: string
+                  example: "U1234567890abcdef"
+                display_name:
+                  type: string
+                  example: "John LINE User"
+      responses:
+        '200':
+          description: LINE authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/auth/user:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Retrieve authenticated user information
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User information retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Invalidate authentication token
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh token
+      description: Get new authentication token
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Public Survey Endpoints
+  /v1/surveys:
+    get:
+      tags:
+        - Surveys
+      summary: List active surveys
+      description: Get list of active surveys available to public
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+            maximum: 100
+          description: Number of items per page
+      responses:
+        '200':
+          description: Surveys retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Survey'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/surveys/{survey}:
+    get:
+      tags:
+        - Surveys
+      summary: Get survey details
+      description: Retrieve specific survey with questions
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      responses:
+        '200':
+          description: Survey details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Survey'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Survey Response Endpoints
+  /v1/survey-responses:
+    post:
+      tags:
+        - Survey Responses
+      summary: Submit survey response
+      description: Submit a response to a survey
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyResponseRequest'
+      responses:
+        '201':
+          description: Response submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Survey response submitted successfully"
+                  data:
+                    $ref: '#/components/schemas/SurveyResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/survey-responses/{surveyResponse}:
+    get:
+      tags:
+        - Survey Responses
+      summary: Get survey response
+      description: Retrieve a specific survey response
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: surveyResponse
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey Response ID
+      responses:
+        '200':
+          description: Survey response retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SurveyResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Admin Survey Management
+  /v1/admin/surveys:
+    get:
+      tags:
+        - Admin - Surveys
+      summary: List all surveys (Admin)
+      description: Get paginated list of all surveys for administrators
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+            maximum: 100
+          description: Number of items per page
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, active, closed]
+          description: Filter by survey status
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search surveys by name or description
+      responses:
+        '200':
+          description: Surveys retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Survey'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+    post:
+      tags:
+        - Admin - Surveys
+      summary: Create new survey
+      description: Create a new survey
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyRequest'
+      responses:
+        '201':
+          description: Survey created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Survey created successfully"
+                  data:
+                    $ref: '#/components/schemas/Survey'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/surveys/{survey}:
+    get:
+      tags:
+        - Admin - Surveys
+      summary: Get survey details (Admin)
+      description: Retrieve specific survey with full details including questions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      responses:
+        '200':
+          description: Survey details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Survey'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+    put:
+      tags:
+        - Admin - Surveys
+      summary: Update survey
+      description: Update an existing survey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyRequest'
+      responses:
+        '200':
+          description: Survey updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Survey updated successfully"
+                  data:
+                    $ref: '#/components/schemas/Survey'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+    delete:
+      tags:
+        - Admin - Surveys
+      summary: Delete survey
+      description: Delete a survey and all associated data
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      responses:
+        '200':
+          description: Survey deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/surveys/{survey}/status:
+    put:
+      tags:
+        - Admin - Surveys
+      summary: Update survey status
+      description: Change survey status (draft/active/closed)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [draft, active, closed]
+                  example: "active"
+      responses:
+        '200':
+          description: Survey status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Survey status updated successfully"
+                  data:
+                    $ref: '#/components/schemas/Survey'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/surveys/{survey}/analytics:
+    get:
+      tags:
+        - Admin - Surveys
+      summary: Get survey analytics
+      description: Retrieve analytics data for a specific survey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      responses:
+        '200':
+          description: Survey analytics retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      total_responses:
+                        type: integer
+                        example: 150
+                      completion_rate:
+                        type: number
+                        format: float
+                        example: 85.5
+                      average_time:
+                        type: integer
+                        example: 180
+                      question_analytics:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            question_id:
+                              type: integer
+                              example: 1
+                            question_text:
+                              type: string
+                              example: "How satisfied are you?"
+                            response_count:
+                              type: integer
+                              example: 120
+                            response_distribution:
+                              type: object
+                              example: {"Very Satisfied": 45, "Satisfied": 35}
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Admin Question Management
+  /v1/admin/surveys/{survey}/questions:
+    get:
+      tags:
+        - Admin - Questions
+      summary: List survey questions
+      description: Get all questions for a specific survey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      responses:
+        '200':
+          description: Questions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SurveyQuestion'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+    post:
+      tags:
+        - Admin - Questions
+      summary: Create survey question
+      description: Add a new question to a survey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: survey
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Survey ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyQuestionRequest'
+      responses:
+        '201':
+          description: Question created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Question created successfully"
+                  data:
+                    $ref: '#/components/schemas/SurveyQuestion'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v1/admin/questions/{question}:
+    get:
+      tags:
+        - Admin - Questions
+      summary: Get question details
+      description: Retrieve specific question details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: question
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Question ID
+      responses:
+        '200':
+          description: Question details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SurveyQuestion'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+    put:
+      tags:
+        - Admin - Questions
+      summary: Update question
+      description: Update an existing question
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: question
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Question ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyQuestionRequest'
+      responses:
+        '200':
+          description: Question updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Question updated successfully"
+                  data:
+                    $ref: '#/components/schemas/SurveyQuestion'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+    delete:
+      tags:
+        - Admin - Questions
+      summary: Delete question
+      description: Delete a question from a survey
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: question
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Question ID
+      responses:
+        '200':
+          description: Question deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
