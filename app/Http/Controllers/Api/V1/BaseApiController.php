@@ -24,7 +24,7 @@ class BaseApiController extends Controller
 
     protected function getCurrentUser()
     {
-        return auth()->user();
+        return auth('sanctum')->user();
     }
 
     protected function requireAdmin()

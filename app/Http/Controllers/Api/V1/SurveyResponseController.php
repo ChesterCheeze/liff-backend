@@ -10,6 +10,53 @@ use App\Models\SurveyResponse;
 
 class SurveyResponseController extends BaseApiController
 {
+    /**
+     * @OA\Post(
+     *     path="/api/v1/survey-responses",
+     *     summary="Submit survey response",
+     *     description="Submit a response to a survey",
+     *     tags={"Survey Responses"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/SurveyResponseRequest")
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Response submitted successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Survey response submitted successfully"),
+     *             @OA\Property(property="data", ref="#/components/schemas/SurveyResponse")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Survey not found or not active",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=409,
+     *         description="Response already submitted",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrorResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=429,
+     *         description="Rate limit exceeded",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     )
+     * )
+     */
     public function store(SurveyResponseRequest $request)
     {
         try {
@@ -72,6 +119,51 @@ class SurveyResponseController extends BaseApiController
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/survey-responses/{surveyResponse}",
+     *     summary="Get survey response",
+     *     description="Retrieve specific survey response (only for the user who submitted it)",
+     *     tags={"Survey Responses"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="surveyResponse",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer"),
+     *         description="Survey Response ID"
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Survey response retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Survey response retrieved successfully"),
+     *             @OA\Property(property="data", ref="#/components/schemas/SurveyResponse")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Access denied to this response",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Survey response not found",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=429,
+     *         description="Rate limit exceeded",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     )
+     * )
+     */
     public function show(SurveyResponse $surveyResponse)
     {
         $user = $this->getCurrentUser();

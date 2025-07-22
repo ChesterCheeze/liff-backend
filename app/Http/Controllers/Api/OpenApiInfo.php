@@ -24,8 +24,13 @@ namespace App\Http\Controllers\Api;
  * )
  * 
  * @OA\Server(
- *     url=L5_SWAGGER_CONST_HOST,
- *     description="API Server"
+ *     url="http://localhost:8000",
+ *     description="Development server"
+ * )
+ * 
+ * @OA\Server(
+ *     url="https://api.example.com",
+ *     description="Production server"
  * )
  * 
  * @OA\SecurityScheme(
@@ -34,6 +39,61 @@ namespace App\Http\Controllers\Api;
  *     scheme="bearer",
  *     bearerFormat="JWT",
  *     description="Enter JWT token obtained from authentication endpoints"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Authentication",
+ *     description="User authentication and registration"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Surveys",
+ *     description="Public survey access"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Survey Responses",
+ *     description="Survey response submission and retrieval"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Admin - Surveys",
+ *     description="Survey management for administrators"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Admin - Questions",
+ *     description="Survey question management"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Admin - Users",
+ *     description="User management for administrators"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Admin - Analytics",
+ *     description="Analytics and reporting"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Admin - Export",
+ *     description="Data export functionality"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Admin - Import",
+ *     description="Data import functionality"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Broadcasting",
+ *     description="Real-time WebSocket authentication"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Legacy",
+ *     description="Legacy endpoints for backward compatibility"
  * )
  */
 class OpenApiInfo

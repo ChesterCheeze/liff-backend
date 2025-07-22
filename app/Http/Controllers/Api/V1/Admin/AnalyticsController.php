@@ -11,6 +11,36 @@ use Illuminate\Http\Request;
 
 class AnalyticsController extends BaseApiController
 {
+    /**
+     * @OA\Get(
+     *     path="/api/v1/admin/analytics/dashboard",
+     *     summary="Get dashboard analytics",
+     *     description="Retrieve overall analytics data for admin dashboard",
+     *     tags={"Admin - Analytics"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="date_from",
+     *         in="query",
+     *         description="Filter from date",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Parameter(
+     *         name="date_to",
+     *         in="query",
+     *         description="Filter to date",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dashboard analytics retrieved",
+     *         @OA\JsonContent(ref="#/components/schemas/DashboardAnalytics")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
+     */
     public function dashboard(Request $request)
     {
         $this->requireAdmin();

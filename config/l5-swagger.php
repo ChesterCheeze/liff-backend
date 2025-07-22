@@ -59,6 +59,7 @@ return [
                  */
                 'annotations' => [
                     base_path('app/Http/Controllers/Api/OpenApiInfo.php'),
+                    base_path('app/Http/Controllers/Api/Schemas.php'),
                     base_path('app/Http/Controllers/Api/V1/SurveyController.php'),
                     base_path('app/Http/Controllers/Api/V1/SurveyResponseController.php'),
                     base_path('app/Http/Controllers/Api/V1/Auth'),
@@ -94,9 +95,9 @@ return [
                  * Middleware for admin documentation access
                  */
                 'middleware' => [
-                    'api' => ['api.admin'],
+                    'api' => [],
                     'asset' => [],
-                    'docs' => ['api.admin'],
+                    'docs' => [],
                     'oauth2_callback' => [],
                 ],
             ],
@@ -131,6 +132,7 @@ return [
                  */
                 'annotations' => [
                     base_path('app/Http/Controllers/Api/OpenApiInfo.php'),
+                    base_path('app/Http/Controllers/Api/Schemas.php'),
                     base_path('app/Http/Controllers/Api/V1/Admin'),
                     base_path('app/Models'),
                 ],

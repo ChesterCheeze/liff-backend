@@ -14,6 +14,36 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends BaseApiController
 {
+    /**
+     * @OA\Get(
+     *     path="/api/v1/admin/users",
+     *     summary="List all users (Admin)",
+     *     description="Get paginated list of all registered users",
+     *     tags={"Admin - Users"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="role",
+     *         in="query",
+     *         description="Filter by user role",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"admin", "user"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Page number",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Users retrieved successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/PaginatedResponse")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
+     */
     public function index(Request $request)
     {
         $this->requireAdmin();
@@ -28,6 +58,30 @@ class UserController extends BaseApiController
         return new UserCollection($users);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/admin/users/{user}",
+     *     summary="Get user details (Admin)",
+     *     description="Retrieve specific user details",
+     *     tags={"Admin - Users"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="user",
+     *         in="path",
+     *         description="User ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="User details retrieved",
+     *         @OA\JsonContent(ref="#/components/schemas/SuccessResponse")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="User not found")
+     * )
+     */
     public function show(User $user)
     {
         $this->requireAdmin();
@@ -35,6 +89,35 @@ class UserController extends BaseApiController
         return $this->successResponse(new UserResource($user), 'User retrieved successfully');
     }
 
+    /**
+     * @OA\Put(
+     *     path="/api/v1/admin/users/{user}",
+     *     summary="Update user",
+     *     description="Update user information",
+     *     tags={"Admin - Users"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="user",
+     *         in="path",
+     *         description="User ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/UserUpdateRequest")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="User updated successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/SuccessResponse")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="User not found"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
     public function update(UserRequest $request, User $user)
     {
         $this->requireAdmin();
@@ -50,6 +133,31 @@ class UserController extends BaseApiController
         return $this->successResponse(new UserResource($user), 'User updated successfully');
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/api/v1/admin/users/{user}",
+     *     summary="Delete user",
+     *     description="Delete a user account",
+     *     tags={"Admin - Users"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="user",
+     *         in="path",
+     *         description="User ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="User deleted successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/SuccessResponse")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="User not found"),
+     *     @OA\Response(response=409, description="Cannot delete own account")
+     * )
+     */
     public function destroy(User $user)
     {
         $this->requireAdmin();
@@ -64,6 +172,36 @@ class UserController extends BaseApiController
         return $this->successResponse(null, 'User deleted successfully');
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/admin/line-users",
+     *     summary="List LINE users (Admin)",
+     *     description="Get paginated list of all LINE OA users",
+     *     tags={"Admin - Users"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="role",
+     *         in="query",
+     *         description="Filter by user role",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"admin", "user"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Page number",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="LINE users retrieved successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/PaginatedResponse")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
+     */
     public function lineUsers(Request $request)
     {
         $this->requireAdmin();
@@ -86,6 +224,30 @@ class UserController extends BaseApiController
         );
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/admin/line-users/{lineUser}",
+     *     summary="Get LINE user details (Admin)",
+     *     description="Retrieve specific LINE user details",
+     *     tags={"Admin - Users"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="lineUser",
+     *         in="path",
+     *         description="LINE User ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="LINE user details retrieved",
+     *         @OA\JsonContent(ref="#/components/schemas/SuccessResponse")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="LINE user not found")
+     * )
+     */
     public function showLineUser(LineOAUser $lineUser)
     {
         $this->requireAdmin();
